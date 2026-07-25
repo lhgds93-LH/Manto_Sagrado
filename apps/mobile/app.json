@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Manto Sagrado",
+    "slug": "manto-sagrado",
+    "scheme": "mantosagrado",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#090909",
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "android": {
+      "package": "br.com.mantosagrado.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#090909"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "br.com.mantosagrado.app",
+      "supportsTablet": true
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
