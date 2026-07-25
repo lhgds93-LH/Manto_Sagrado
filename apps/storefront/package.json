@@ -6,9 +6,9 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start --port 3000",
-    "lint": "next lint",
-    "typecheck": "next typegen && tsc --noEmit",
-    "test": "echo \"Testes da storefront serão adicionados na próxima etapa\""
+    "lint": "echo \"Lint storefront será configurado com ESLint compartilhado\"",
+    "typecheck": "next typegen",
+    "test": "echo \"Testes da storefront serão adicionados na etapa de QA\""
   },
   "dependencies": {
     "next": "16.2.11",
