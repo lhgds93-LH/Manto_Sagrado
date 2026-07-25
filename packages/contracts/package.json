@@ -1,0 +1,20 @@
+{
+  "name": "@manto-sagrado/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"Lint de contratos será configurado no pacote compartilhado\"",
+    "test": "echo \"Testes de contratos serão adicionados na etapa de QA\""
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}
