@@ -56,8 +56,28 @@ jobs:
       - name: Build API
         run: pnpm --filter @manto-sagrado/api build
 
-      - name: Build storefront
-        run: pnpm --filter @manto-sagrado/storefront build
+      - name: Validate Firebase storefront exactly
+        run: |
+          cd apps/storefront
+          rm -rf node_modules out
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run build
+          PORT=8080 npm run start > /tmp/manto-storefront.log 2>&1 &
+          APP_PID=$!
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8080/ > /tmp/manto-home.html; then
+              grep -q "Manto Sagrado" /tmp/manto-home.html
+              kill $APP_PID
+              wait $APP_PID || true
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/manto-storefront.log
+          kill $APP_PID || true
+          exit 1
 
       - name: Build admin
         run: pnpm --filter @manto-sagrado/admin build
