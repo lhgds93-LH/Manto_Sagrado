@@ -1,21 +1,126 @@
-import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync
+} from "node:fs";
+import { extname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const source = resolve(root, "apps/storefront/static");
-const output = resolve(root, "dist");
+const output = resolve(root, "server.mjs");
+const legacyDist = resolve(root, "dist");
 
 if (!existsSync(source)) {
   throw new Error("Pasta apps/storefront/static não encontrada");
 }
 
-rmSync(output, { recursive: true, force: true });
-mkdirSync(output, { recursive: true });
-cpSync(source, output, { recursive: true });
+const mimeTypes = {
+  ".css": "text/css; charset=utf-8",
+  ".gif": "image/gif",
+  ".html": "text/html; charset=utf-8",
+  ".ico": "image/x-icon",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
+  ".webmanifest": "application/manifest+json",
+  ".webp": "image/webp",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2"
+};
 
-if (!existsSync(resolve(output, "index.html"))) {
-  throw new Error("Build inválido: dist/index.html não foi gerado");
+function listFiles(directory) {
+  return readdirSync(directory).flatMap((entry) => {
+    const fullPath = resolve(directory, entry);
+    return statSync(fullPath).isDirectory() ? listFiles(fullPath) : [fullPath];
+  });
 }
 
-console.log("Build do App Hosting concluído em /dist");
+const assets = Object.fromEntries(
+  listFiles(source).map((filePath) => {
+    const publicPath = `/${relative(source, filePath).split(sep).join("/")}`;
+    const extension = extname(filePath).toLowerCase();
+
+    return [
+      publicPath,
+      {
+        body: readFileSync(filePath).toString("base64"),
+        contentType: mimeTypes[extension] || "application/octet-stream"
+      }
+    ];
+  })
+);
+
+if (!assets["/index.html"]) {
+  throw new Error("Build inválido: apps/storefront/static/index.html não encontrado");
+}
+
+const runtime = `import { createServer } from "node:http";
+import { extname } from "node:path";
+
+const assets = ${JSON.stringify(assets)};
+const port = Number(process.env.PORT || 8080);
+
+function resolveAssetPath(requestUrl) {
+  let pathname;
+
+  try {
+    pathname = decodeURIComponent(new URL(requestUrl || "/", "http://localhost").pathname);
+  } catch {
+    return null;
+  }
+
+  if (pathname === "/") pathname = "/index.html";
+  if (pathname.endsWith("/")) pathname += "index.html";
+
+  if (assets[pathname]) return pathname;
+  if (!extname(pathname) && assets[\`${"${pathname}"}.html\`]) return \`${"${pathname}"}.html\`;
+
+  return assets["/index.html"] ? "/index.html" : null;
+}
+
+const server = createServer((request, response) => {
+  const assetPath = resolveAssetPath(request.url);
+  const asset = assetPath ? assets[assetPath] : null;
+
+  if (!asset) {
+    response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+    response.end("Página não encontrada");
+    return;
+  }
+
+  const body = Buffer.from(asset.body, "base64");
+
+  response.writeHead(200, {
+    "content-type": asset.contentType,
+    "content-length": body.length,
+    "cache-control": "public, max-age=0, must-revalidate",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "SAMEORIGIN",
+    "referrer-policy": "strict-origin-when-cross-origin"
+  });
+
+  if (request.method === "HEAD") {
+    response.end();
+    return;
+  }
+
+  response.end(body);
+});
+
+server.listen(port, "0.0.0.0", () => {
+  console.log(\`Manto Sagrado disponível na porta ${"${port}"}\`);
+});
+`;
+
+rmSync(legacyDist, { recursive: true, force: true });
+writeFileSync(output, runtime, "utf8");
+
+console.log(`Build concluído: ${Object.keys(assets).length} arquivos incorporados em server.mjs`);
