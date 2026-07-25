@@ -9,3 +9,5 @@ coverage
 .DS_Store
 .expo
 .turbo
+deployment-output.txt
+server.mjs
