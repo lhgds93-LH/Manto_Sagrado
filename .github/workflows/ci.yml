@@ -9,7 +9,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
       DATABASE_URL: postgresql://manto:manto_local@localhost:5432/manto_sagrado
       ADMIN_API_KEY: ci-admin-key-not-for-production
@@ -29,7 +29,10 @@ jobs:
           node-version: 24
 
       - name: Validate Google Cloud provisioner
-        run: bash -n scripts/provision-gcp-production.sh
+        run: |
+          bash -n scripts/provision-gcp-production.sh
+          bash -n scripts/resume-gcp-production.sh
+          bash -n apps/api/docker-entrypoint.sh
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -100,3 +103,59 @@ jobs:
 
       - name: Build Cloud Run image
         run: docker build --file apps/api/Dockerfile --tag manto-sagrado-api:ci .
+
+      - name: Validate Cloud Run container startup exactly
+        run: |
+          set -Eeuo pipefail
+          cleanup() {
+            docker rm -f manto-api manto-postgres >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run --detach --name manto-postgres \
+            --env POSTGRES_USER=manto \
+            --env POSTGRES_PASSWORD=manto_local \
+            --env POSTGRES_DB=manto_sagrado \
+            --network host \
+            postgres:16-alpine
+
+          for attempt in {1..30}; do
+            if docker exec manto-postgres pg_isready -U manto -d manto_sagrado >/dev/null 2>&1; then
+              break
+            fi
+            if [[ "$attempt" -eq 30 ]]; then
+              docker logs manto-postgres
+              exit 1
+            fi
+            sleep 1
+          done
+
+          docker run --rm --network host \
+            --env DATABASE_URL="$DATABASE_URL" \
+            --entrypoint bash \
+            manto-sagrado-api:ci \
+            -lc "pnpm --filter @manto-sagrado/api prisma:deploy && pnpm --filter @manto-sagrado/api prisma:seed"
+
+          docker run --detach --name manto-api \
+            --network host \
+            --env PORT=8080 \
+            --env DATABASE_URL="$DATABASE_URL" \
+            --env ADMIN_API_KEY="$ADMIN_API_KEY" \
+            --env CORS_ORIGINS="$CORS_ORIGINS" \
+            manto-sagrado-api:ci
+
+          for attempt in {1..45}; do
+            if curl --fail --silent http://127.0.0.1:8080/v1/health > /tmp/manto-api-health.json; then
+              grep -q '"status":"ok"' /tmp/manto-api-health.json
+              docker logs manto-api
+              exit 0
+            fi
+            if ! docker inspect -f '{{.State.Running}}' manto-api 2>/dev/null | grep -qx true; then
+              docker logs manto-api
+              exit 1
+            fi
+            sleep 1
+          done
+
+          docker logs manto-api
+          exit 1
