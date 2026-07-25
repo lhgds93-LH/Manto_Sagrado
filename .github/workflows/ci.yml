@@ -34,6 +34,22 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm --filter @manto-sagrado/api prisma:generate
 
+      - name: Generate initial migration SQL
+        run: |
+          mkdir -p /tmp/manto-migration
+          pnpm --filter @manto-sagrado/api exec prisma migrate diff \
+            --from-empty \
+            --to-schema apps/api/prisma/schema.prisma \
+            --script \
+            --output /tmp/manto-migration/migration.sql
+
+      - name: Upload initial migration SQL
+        uses: actions/upload-artifact@v4
+        with:
+          name: prisma-initial-migration
+          path: /tmp/manto-migration/migration.sql
+          retention-days: 7
+
       - name: Typecheck contracts
         run: pnpm --filter @manto-sagrado/contracts typecheck
 
