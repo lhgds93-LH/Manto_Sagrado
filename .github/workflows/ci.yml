@@ -56,11 +56,17 @@ jobs:
       - name: Build API
         run: pnpm --filter @manto-sagrado/api build
 
-      - name: Validate Firebase root build exactly
+      - name: Validate Firebase packaged runtime exactly
         run: |
-          rm -rf apps/storefront/out
+          rm -rf apps/storefront/out /tmp/firebase-runtime
           npm run apphosting:build
-          PORT=8080 npm run start > /tmp/manto-storefront.log 2>&1 &
+
+          mkdir -p /tmp/firebase-runtime/apps/storefront
+          cp -R apps/storefront/out /tmp/firebase-runtime/apps/storefront/out
+          cp apps/storefront/server.mjs /tmp/firebase-runtime/apps/storefront/server.mjs
+
+          cd /tmp/firebase-runtime
+          PORT=8080 node apps/storefront/server.mjs > /tmp/manto-storefront.log 2>&1 &
           APP_PID=$!
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8080/ > /tmp/manto-home.html; then
