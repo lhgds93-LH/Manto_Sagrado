@@ -3,12 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "turbo dev",
+    "dev:storefront": "pnpm --filter @manto-sagrado/storefront dev",
+    "dev:admin": "pnpm --filter @manto-sagrado/admin dev",
+    "dev:api": "pnpm --filter @manto-sagrado/api dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
-    "test": "turbo test"
+    "test": "turbo test",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:generate": "pnpm --filter @manto-sagrado/api prisma:generate",
+    "db:migrate": "pnpm --filter @manto-sagrado/api prisma:migrate",
+    "db:seed": "pnpm --filter @manto-sagrado/api prisma:seed"
   },
   "devDependencies": {
     "turbo": "2.10.6",
