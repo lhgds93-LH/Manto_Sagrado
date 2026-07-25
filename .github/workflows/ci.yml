@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  contents: write
-
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -20,8 +17,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -36,35 +31,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Generate Firebase-compatible lockfiles
-        run: |
-          rm -rf /tmp/storefront-lock /tmp/admin-lock
-          mkdir -p /tmp/storefront-lock /tmp/admin-lock
-
-          cp apps/storefront/package.json /tmp/storefront-lock/package.json
-          cd /tmp/storefront-lock
-          npm install --package-lock-only --ignore-scripts
-          cp package-lock.json "$GITHUB_WORKSPACE/apps/storefront/package-lock.json"
-
-          cp "$GITHUB_WORKSPACE/apps/admin/package.json" /tmp/admin-lock/package.json
-          cd /tmp/admin-lock
-          npm install --package-lock-only --ignore-scripts
-          cp package-lock.json "$GITHUB_WORKSPACE/apps/admin/package-lock.json"
-
-      - name: Commit Firebase lockfiles
-        if: github.event_name == 'pull_request'
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/storefront/package-lock.json apps/admin/package-lock.json
-          if git diff --cached --quiet; then
-            echo "Lockfiles já estão atualizados."
-            exit 0
-          fi
-          git commit -m "fix: atualizar lockfiles para Next 15.2"
-          git push origin HEAD:${GITHUB_HEAD_REF}
-
       - name: Generate Prisma Client
         run: pnpm --filter @manto-sagrado/api prisma:generate
 
@@ -76,6 +42,13 @@ jobs:
             --to-schema prisma/schema.prisma \
             --script \
             --output /tmp/manto-migration/migration.sql
+
+      - name: Upload initial migration SQL
+        uses: actions/upload-artifact@v4
+        with:
+          name: prisma-initial-migration
+          path: /tmp/manto-migration/migration.sql
+          retention-days: 7
 
       - name: Typecheck contracts
         run: pnpm --filter @manto-sagrado/contracts typecheck
