@@ -1,0 +1,149 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProductCategory {
+  BRASILEIRAO
+  INTERNACIONAIS
+  SELECOES
+  RETRO
+  INFANTIL
+  FEMININA
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REFUSED
+  REFUNDED
+  CHARGEBACK
+}
+
+enum OrderStatus {
+  AWAITING_PAYMENT
+  PAID
+  SENT_TO_PARTNER
+  TRACKING_RECEIVED
+  SHIPPED
+  DELIVERED
+  CANCELED
+}
+
+model Product {
+  id             String          @id @default(cuid())
+  sku            String          @unique
+  slug           String          @unique
+  name           String
+  description    String
+  category       ProductCategory
+  status         ProductStatus   @default(DRAFT)
+  price          Decimal         @db.Decimal(10, 2)
+  compareAtPrice Decimal?        @db.Decimal(10, 2)
+  imageUrl       String?
+  badge          String?
+  supplierCode   String          @default("FORN-001")
+  supplierRef    String?
+  variants       ProductVariant[]
+  orderItems     OrderItem[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([status, category])
+  @@index([name])
+}
+
+model ProductVariant {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size        String
+  active      Boolean  @default(true)
+  stock       Int      @default(0)
+  externalRef String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([productId, size])
+  @@index([productId, active])
+}
+
+model Order {
+  id                    String        @id @default(cuid())
+  number                String        @unique
+  customerName          String
+  customerEmail         String
+  customerPhone         String
+  shippingStreet        String
+  shippingNumber        String
+  shippingComplement    String?
+  shippingNeighborhood  String
+  shippingCity          String
+  shippingState         String
+  shippingPostalCode    String
+  subtotal              Decimal       @db.Decimal(10, 2)
+  shippingAmount        Decimal       @default(0) @db.Decimal(10, 2)
+  discountAmount        Decimal       @default(0) @db.Decimal(10, 2)
+  total                  Decimal       @db.Decimal(10, 2)
+  paymentStatus          PaymentStatus @default(PENDING)
+  status                 OrderStatus   @default(AWAITING_PAYMENT)
+  paymentProvider        String?
+  paymentReference       String?
+  supplierCode           String        @default("FORN-001")
+  operationalMessage     String?
+  trackingCode           String?
+  trackingCarrier        String?
+  sentToPartnerAt        DateTime?
+  trackingReceivedAt     DateTime?
+  shippedAt              DateTime?
+  deliveredAt            DateTime?
+  items                   OrderItem[]
+  events                  OrderEvent[]
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  @@index([customerEmail, createdAt])
+  @@index([status, createdAt])
+  @@index([paymentStatus, createdAt])
+}
+
+model OrderItem {
+  id              String   @id @default(cuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id])
+  productName     String
+  sku             String
+  size            String
+  quantity        Int
+  unitPrice       Decimal  @db.Decimal(10, 2)
+  personalization String?
+  createdAt       DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderEvent {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  note      String?
+  public    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+
+  @@index([orderId, createdAt])
+}
