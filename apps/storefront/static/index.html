@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090909">
+  <meta name="description" content="Manto Sagrado — camisas e artigos esportivos.">
+  <title>Manto Sagrado</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="Manto Sagrado - início">
+        <span class="brand-shield">MS</span>
+        <span><strong>Manto Sagrado</strong><small>Futebol é paixão. O manto é sagrado.</small></span>
+      </a>
+      <nav class="desktop-nav"><a href="#lancamentos">Lançamentos</a><a href="#categorias">Categorias</a><a href="#beneficios">Benefícios</a></nav>
+      <div class="header-actions"><button class="icon-button" aria-label="Notificações">♢</button><button id="open-cart" class="icon-button cart-button" aria-label="Abrir carrinho">◫<span id="cart-badge" class="cart-badge hidden">0</span></button></div>
+    </header>
+
+    <section class="hero" id="inicio">
+      <div class="hero-content"><span class="eyebrow">COLEÇÃO 2026</span><h1>Seu time.<br>Seu manto.</h1><p>Camisas selecionadas, personalização e uma experiência de compra segura do pedido ao rastreamento.</p><a class="primary-button" href="#lancamentos">Ver lançamentos <span>→</span></a></div>
+      <div class="hero-visual" aria-hidden="true"><span class="hero-ring"></span><span class="hero-shirt">10</span><span class="hero-label">MANTO<br>SAGRADO</span></div>
+    </section>
+
+    <section class="search-section"><label class="search-box"><span>⌕</span><input id="search" type="search" placeholder="Busque por times, seleções ou produtos" aria-label="Buscar produtos"></label></section>
+
+    <section class="category-section" id="categorias"><div class="section-heading"><div><span class="section-kicker">EXPLORE</span><h2>Categorias</h2></div></div><div id="categories" class="category-list"></div></section>
+
+    <section class="products-section" id="lancamentos">
+      <div class="section-heading"><div><span class="section-kicker">ESCOLHIDOS PARA VOCÊ</span><h2 id="products-title">Lançamentos</h2></div><span id="result-count" class="result-count"></span></div>
+      <div id="product-grid" class="product-grid"></div>
+      <div id="empty-state" class="empty-state hidden"><span>⌕</span><h3>Nenhum manto encontrado</h3><p>Tente outro termo ou escolha a categoria “Todos”.</p><button id="clear-filters" class="secondary-button">Limpar filtros</button></div>
+    </section>
+
+    <section class="benefits" id="beneficios">
+      <article><span>◆</span><div><strong>Compra protegida</strong><small>Pagamento seguro e acompanhamento do pedido</small></div></article>
+      <article><span>✦</span><div><strong>Personalize seu manto</strong><small>Nome, número e opções configuráveis por produto</small></div></article>
+      <article><span>◎</span><div><strong>Rastreio fácil</strong><small>Código e atualizações disponíveis na área de pedidos</small></div></article>
+    </section>
+
+    <footer class="footer"><span class="brand-shield small">MS</span><div><strong>Manto Sagrado</strong><p>Loja brasileira de camisas e artigos esportivos.</p></div></footer>
+
+    <nav class="mobile-nav"><a class="active" href="#inicio"><span>⌂</span>Início</a><a href="#categorias"><span>▦</span>Categorias</a><button id="mobile-favorites"><span>♡</span>Favoritos</button><button><span>▤</span>Pedidos</button><button><span>○</span>Perfil</button></nav>
+  </main>
+
+  <div id="drawer-backdrop" class="drawer-backdrop hidden">
+    <aside class="cart-drawer" role="dialog" aria-modal="true" aria-label="Seu carrinho">
+      <div class="drawer-header"><div><span class="section-kicker">SUA SACOLA</span><h2>Carrinho</h2></div><button id="close-cart" class="close-button" aria-label="Fechar carrinho">×</button></div>
+      <div id="cart-content"></div>
+      <div class="cart-summary"><div><span>Total</span><strong id="cart-total">R$ 0,00</strong></div><button class="primary-button full" disabled>Continuar para o checkout</button></div>
+    </aside>
+  </div>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
