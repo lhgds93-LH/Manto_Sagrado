@@ -56,9 +56,13 @@ jobs:
       - name: Build API
         run: pnpm --filter @manto-sagrado/api build
 
-      - name: Validate Firebase single-file runtime exactly
+      - name: Validate Firebase commerce runtime exactly
+        env:
+          PUBLIC_API_URL: https://api.example.test
         run: |
           rm -rf dist /tmp/firebase-runtime
+          node --check apps/storefront/static/app.js
+          node --check apphosting-build.mjs
           npm run apphosting:build
           node --check server.mjs
 
@@ -66,13 +70,18 @@ jobs:
           cp server.mjs /tmp/firebase-runtime/server.mjs
 
           cd /tmp/firebase-runtime
-          PORT=8080 node server.mjs > /tmp/manto-storefront.log 2>&1 &
+          PORT=8080 PUBLIC_API_URL=https://api.example.test node server.mjs > /tmp/manto-storefront.log 2>&1 &
           APP_PID=$!
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8080/ > /tmp/manto-home.html; then
-              grep -q "Manto Sagrado" /tmp/manto-home.html
+              grep -q "checkout-form" /tmp/manto-home.html
+              grep -q "Meus pedidos" /tmp/manto-home.html
               curl --fail --silent http://127.0.0.1:8080/app.js > /tmp/manto-app.js
-              grep -q "renderProducts" /tmp/manto-app.js
+              grep -q "submitOrder" /tmp/manto-app.js
+              curl --fail --silent http://127.0.0.1:8080/runtime-config.js > /tmp/manto-config.js
+              grep -q "https://api.example.test" /tmp/manto-config.js
+              curl --fail --silent http://127.0.0.1:8080/healthz > /tmp/manto-health.json
+              grep -q '"status":"ok"' /tmp/manto-health.json
               kill $APP_PID
               wait $APP_PID || true
               exit 0
