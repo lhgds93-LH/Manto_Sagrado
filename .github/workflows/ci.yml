@@ -31,12 +31,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Generate App Hosting lockfiles
+      - name: Generate clean App Hosting lockfiles
         run: |
-          cd apps/storefront
+          rm -rf /tmp/storefront-lock /tmp/admin-lock
+          mkdir -p /tmp/storefront-lock /tmp/admin-lock
+
+          cp apps/storefront/package.json /tmp/storefront-lock/package.json
+          cd /tmp/storefront-lock
           npm install --package-lock-only --ignore-scripts
-          cd ../admin
+          cp package-lock.json "$GITHUB_WORKSPACE/apps/storefront/package-lock.json"
+
+          cp "$GITHUB_WORKSPACE/apps/admin/package.json" /tmp/admin-lock/package.json
+          cd /tmp/admin-lock
           npm install --package-lock-only --ignore-scripts
+          cp package-lock.json "$GITHUB_WORKSPACE/apps/admin/package-lock.json"
 
       - name: Upload App Hosting lockfiles
         uses: actions/upload-artifact@v4
