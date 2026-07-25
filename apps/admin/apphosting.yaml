@@ -1,0 +1,15 @@
+# Firebase App Hosting — painel administrativo Manto Sagrado
+# O backend deve ser criado apontando o diretório raiz para apps/admin.
+runConfig:
+  minInstances: 0
+  maxInstances: 3
+  concurrency: 40
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  - variable: NEXT_PUBLIC_APP_ENV
+    value: production
+    availability:
+      - BUILD
+      - RUNTIME
