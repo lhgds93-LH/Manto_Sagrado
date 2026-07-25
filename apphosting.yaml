@@ -1,14 +1,13 @@
-# Firebase App Hosting — configuração na raiz real usada pelo backend.
-# O backend atual foi criado apontando para a raiz do repositório.
+# Firebase App Hosting — loja pública executada diretamente na raiz.
 scripts:
   buildCommand: npm run apphosting:build
-  runCommand: node apps/storefront/server.mjs
+  runCommand: node server.mjs
 
 outputFiles:
   serverApp:
     include:
-      - apps/storefront/out
-      - apps/storefront/server.mjs
+      - dist
+      - server.mjs
 
 runConfig:
   minInstances: 0
