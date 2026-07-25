@@ -9,7 +9,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       DATABASE_URL: postgresql://manto:manto_local@localhost:5432/manto_sagrado
       ADMIN_API_KEY: ci-admin-key-not-for-production
@@ -45,3 +45,6 @@ jobs:
 
       - name: Build admin
         run: pnpm --filter @manto-sagrado/admin build
+
+      - name: Build Cloud Run image
+        run: docker build --file apps/api/Dockerfile --tag manto-sagrado-api:ci .
