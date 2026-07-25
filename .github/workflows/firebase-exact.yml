@@ -1,0 +1,59 @@
+name: Firebase Exact Build
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  firebase-exact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/storefront
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/storefront/package-lock.json
+
+      - name: Show environment
+        run: |
+          node --version
+          npm --version
+          pwd
+          ls -la
+
+      - name: Clean install exactly like App Hosting
+        run: npm ci --include=dev
+
+      - name: Build exactly like App Hosting
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_APP_ENV: production
+          PORT: 8080
+        run: npm run build
+
+      - name: Verify production start
+        env:
+          NODE_ENV: production
+          PORT: 8080
+        run: |
+          npm run start > /tmp/storefront.log 2>&1 &
+          APP_PID=$!
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8080/ > /tmp/storefront-home.html; then
+              kill $APP_PID
+              wait $APP_PID || true
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/storefront.log
+          kill $APP_PID || true
+          exit 1
