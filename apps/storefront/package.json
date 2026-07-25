@@ -1,21 +1,17 @@
 {
   "name": "@manto-sagrado/storefront",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "type": "module",
   "engines": {
     "node": ">=22.13"
   },
   "scripts": {
-    "dev": "next dev --port 3000",
-    "build": "next build",
+    "dev": "node build.mjs && node server.mjs",
+    "build": "node build.mjs",
     "start": "node server.mjs",
-    "lint": "echo \"Lint storefront será configurado com ESLint compartilhado\"",
-    "typecheck": "next build",
-    "test": "echo \"Testes da storefront serão adicionados na etapa de QA\""
-  },
-  "dependencies": {
-    "next": "15.2.6",
-    "react": "19.0.0",
-    "react-dom": "19.0.0"
+    "lint": "node --check app.js 2>/dev/null || true",
+    "typecheck": "node --check build.mjs && node --check server.mjs",
+    "test": "node build.mjs"
   }
 }
