@@ -1,0 +1,45 @@
+substitutions:
+  _REGION: us-central1
+  _AR_REPOSITORY: manto-sagrado
+  _SERVICE: manto-sagrado-api
+  _CLOUD_SQL_INSTANCE: PROJECT_ID:REGION:INSTANCE_NAME
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file
+      - apps/api/Dockerfile
+      - --tag
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --add-cloudsql-instances=${_CLOUD_SQL_INSTANCE}
+      - --set-secrets=DATABASE_URL=manto-database-url:latest,ADMIN_API_KEY=manto-admin-api-key:latest,CORS_ORIGINS=manto-cors-origins:latest
+      - --set-env-vars=NODE_ENV=production
+      - --memory=512Mi
+      - --cpu=1
+      - --min=0
+      - --max=5
+      - --concurrency=40
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+
+options:
+  logging: CLOUD_LOGGING_ONLY
