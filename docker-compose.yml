@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - manto_postgres_data:/var/lib/postgresql/data
+      - manto_postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U manto -d manto_sagrado"]
       interval: 5s
