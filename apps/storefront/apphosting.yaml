@@ -1,0 +1,15 @@
+# Firebase App Hosting — loja pública Manto Sagrado
+# O backend deve ser criado apontando o diretório raiz para apps/storefront.
+runConfig:
+  minInstances: 0
+  maxInstances: 10
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  - variable: NEXT_PUBLIC_APP_ENV
+    value: production
+    availability:
+      - BUILD
+      - RUNTIME
