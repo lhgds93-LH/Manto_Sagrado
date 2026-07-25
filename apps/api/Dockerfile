@@ -13,6 +13,10 @@ ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
 RUN pnpm install --no-frozen-lockfile
 RUN pnpm --filter @manto-sagrado/api prisma:generate
 RUN pnpm --filter @manto-sagrado/api build
+RUN set -eux; \
+    MAIN_FILE="$(find /workspace/apps/api/dist -type f -name main.js | head -n 1)"; \
+    test -n "$MAIN_FILE"; \
+    printf '%s' "$MAIN_FILE" > /workspace/apps/api/.runtime-main-path
 
 FROM node:24-bookworm-slim AS runtime
 
@@ -22,7 +26,9 @@ WORKDIR /workspace
 RUN npm install --global pnpm@11.17.0
 
 COPY --from=build /workspace /workspace
+COPY apps/api/docker-entrypoint.sh /usr/local/bin/manto-api-entrypoint
+RUN chmod 755 /usr/local/bin/manto-api-entrypoint
 
 EXPOSE 8080
 
-CMD ["pnpm", "--filter", "@manto-sagrado/api", "start:prod"]
+ENTRYPOINT ["/usr/local/bin/manto-api-entrypoint"]
