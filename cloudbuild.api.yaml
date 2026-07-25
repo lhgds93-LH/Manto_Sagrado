@@ -1,8 +1,8 @@
 substitutions:
-  _REGION: us-central1
+  _REGION: us-east4
   _AR_REPOSITORY: manto-sagrado
   _SERVICE: manto-sagrado-api
-  _CLOUD_SQL_INSTANCE: PROJECT_ID:REGION:INSTANCE_NAME
+  _CLOUD_SQL_INSTANCE: PROJECT_ID:us-east4:INSTANCE_NAME
 
 steps:
   - name: gcr.io/cloud-builders/docker
