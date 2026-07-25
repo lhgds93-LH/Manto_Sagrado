@@ -15,6 +15,6 @@
     "test": "echo \"Testes de contratos serão adicionados na etapa de QA\""
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "typescript": "6.0.3"
   }
 }
