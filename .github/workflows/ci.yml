@@ -29,17 +29,7 @@ jobs:
           node-version: 24
 
       - name: Install dependencies
-        run: |
-          set -o pipefail
-          pnpm install --no-frozen-lockfile 2>&1 | tee install.log
-
-      - name: Upload install log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: install-log
-          path: install.log
-          if-no-files-found: ignore
+        run: pnpm install --no-frozen-lockfile
 
       - name: Generate Prisma Client
         run: pnpm --filter @manto-sagrado/api prisma:generate
@@ -48,10 +38,57 @@ jobs:
         run: pnpm --filter @manto-sagrado/contracts typecheck
 
       - name: Build API
-        run: pnpm --filter @manto-sagrado/api build
+        id: api_build
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pnpm --filter @manto-sagrado/api build 2>&1 | tee api-build.log
+
+      - name: Upload API log on failure
+        if: steps.api_build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-build-log
+          path: api-build.log
 
       - name: Build storefront
-        run: pnpm --filter @manto-sagrado/storefront build
+        id: storefront_build
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pnpm --filter @manto-sagrado/storefront build 2>&1 | tee storefront-build.log
+
+      - name: Upload storefront log on failure
+        if: steps.storefront_build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: storefront-build-log
+          path: storefront-build.log
 
       - name: Build admin
-        run: pnpm --filter @manto-sagrado/admin build
+        id: admin_build
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pnpm --filter @manto-sagrado/admin build 2>&1 | tee admin-build.log
+
+      - name: Upload admin log on failure
+        if: steps.admin_build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-build-log
+          path: admin-build.log
+
+      - name: Confirm build results
+        if: always()
+        env:
+          API_RESULT: ${{ steps.api_build.outcome }}
+          STOREFRONT_RESULT: ${{ steps.storefront_build.outcome }}
+          ADMIN_RESULT: ${{ steps.admin_build.outcome }}
+        run: |
+          echo "API: $API_RESULT"
+          echo "Storefront: $STOREFRONT_RESULT"
+          echo "Admin: $ADMIN_RESULT"
+          test "$API_RESULT" = "success"
+          test "$STOREFRONT_RESULT" = "success"
+          test "$ADMIN_RESULT" = "success"
