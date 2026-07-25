@@ -56,14 +56,10 @@ jobs:
       - name: Build API
         run: pnpm --filter @manto-sagrado/api build
 
-      - name: Validate Firebase storefront exactly
+      - name: Validate Firebase root build exactly
         run: |
-          cd apps/storefront
-          rm -rf node_modules out
-          npm ci
-          npm run lint
-          npm run typecheck
-          npm run build
+          rm -rf apps/storefront/out
+          npm run apphosting:build
           PORT=8080 npm run start > /tmp/manto-storefront.log 2>&1 &
           APP_PID=$!
           for attempt in {1..30}; do
