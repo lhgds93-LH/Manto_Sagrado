@@ -7,9 +7,9 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "apphosting:build": "npm --prefix apps/storefront run build",
-    "build": "npm --prefix apps/storefront run build",
-    "start": "npm --prefix apps/storefront run start",
+    "apphosting:build": "node apphosting-build.mjs",
+    "build": "node apphosting-build.mjs",
+    "start": "node server.mjs",
     "dev": "turbo dev",
     "dev:storefront": "pnpm --filter @manto-sagrado/storefront dev",
     "dev:admin": "pnpm --filter @manto-sagrado/admin dev",
