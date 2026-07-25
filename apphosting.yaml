@@ -1,4 +1,4 @@
-# Firebase App Hosting — loja pública executada diretamente na raiz.
+# Firebase App Hosting — loja pública em um único servidor autossuficiente.
 scripts:
   buildCommand: npm run apphosting:build
   runCommand: node server.mjs
@@ -6,7 +6,6 @@ scripts:
 outputFiles:
   serverApp:
     include:
-      - dist
       - server.mjs
 
 runConfig:
