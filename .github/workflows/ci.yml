@@ -31,6 +31,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Generate App Hosting lockfiles
+        run: |
+          cd apps/storefront
+          npm install --package-lock-only --ignore-scripts
+          cd ../admin
+          npm install --package-lock-only --ignore-scripts
+
+      - name: Upload App Hosting lockfiles
+        uses: actions/upload-artifact@v4
+        with:
+          name: apphosting-lockfiles
+          path: |
+            apps/storefront/package-lock.json
+            apps/admin/package-lock.json
+          retention-days: 7
+
       - name: Generate Prisma Client
         run: pnpm --filter @manto-sagrado/api prisma:generate
 
