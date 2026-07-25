@@ -2,14 +2,13 @@
 # O backend atual foi criado apontando para a raiz do repositório.
 scripts:
   buildCommand: npm run apphosting:build
-  runCommand: npm run start
+  runCommand: node apps/storefront/server.mjs
 
 outputFiles:
   serverApp:
     include:
       - apps/storefront/out
       - apps/storefront/server.mjs
-      - apps/storefront/package.json
 
 runConfig:
   minInstances: 0
