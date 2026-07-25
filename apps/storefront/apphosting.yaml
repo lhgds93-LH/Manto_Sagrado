@@ -1,10 +1,17 @@
 # Firebase App Hosting — loja pública Manto Sagrado
-# O backend deve ser criado apontando o diretório raiz para apps/storefront.
-# Os comandos abaixo ignoram o adaptador Next.js do Firebase e usam o build
-# padrão do projeto, já validado pelo GitHub Actions.
+# O backend deve apontar o diretório raiz para apps/storefront.
+# A loja é exportada como arquivos estáticos e servida por Node puro,
+# sem depender do adaptador Next.js durante a execução.
 scripts:
   buildCommand: npm run build
-  runCommand: npm run start
+  runCommand: node server.mjs
+
+outputFiles:
+  serverApp:
+    include:
+      - out
+      - server.mjs
+      - package.json
 
 runConfig:
   minInstances: 0
@@ -12,6 +19,10 @@ runConfig:
   concurrency: 80
   cpu: 1
   memoryMiB: 512
+
+availability:
+  cpu: true
+  memory: true
 
 env:
   - variable: NEXT_PUBLIC_APP_ENV
