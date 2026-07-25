@@ -25,6 +25,37 @@ say() { printf '\n\033[1;36m%s\033[0m\n' "$*"; }
 warn() { printf '\n\033[1;33m%s\033[0m\n' "$*"; }
 fail() { printf '\n\033[1;31mERRO: %s\033[0m\n' "$*" >&2; exit 1; }
 
+wait_for_service_account() {
+  local service_account="$1"
+  local attempt
+  for attempt in {1..30}; do
+    if gcloud iam service-accounts describe "$service_account" \
+      --project="$PROJECT_ID" >/dev/null 2>&1; then
+      return 0
+    fi
+    warn "Aguardando a conta de serviço aparecer no IAM (${attempt}/30)..."
+    sleep 5
+  done
+  fail "A conta de serviço ${service_account} foi criada, mas não ficou disponível no IAM dentro do prazo."
+}
+
+grant_project_role() {
+  local member="$1"
+  local role="$2"
+  local attempt
+  for attempt in {1..12}; do
+    if gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+      --member="$member" \
+      --role="$role" \
+      --condition=None >/dev/null 2>&1; then
+      return 0
+    fi
+    warn "Aguardando propagação do IAM para ${role} (${attempt}/12)..."
+    sleep 5
+  done
+  fail "Não foi possível conceder ${role} para ${member}."
+}
+
 command -v gcloud >/dev/null 2>&1 || fail "gcloud não encontrado. Execute este script no Google Cloud Shell."
 command -v openssl >/dev/null 2>&1 || fail "openssl não encontrado."
 command -v python3 >/dev/null 2>&1 || fail "python3 não encontrado."
@@ -65,15 +96,9 @@ if ! gcloud iam service-accounts describe "$RUNTIME_SA" --project="$PROJECT_ID" 
     --display-name="Manto Sagrado API Runtime"
 fi
 
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${RUNTIME_SA}" \
-  --role="roles/cloudsql.client" \
-  --condition=None >/dev/null
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${RUNTIME_SA}" \
-  --role="roles/logging.logWriter" \
-  --condition=None >/dev/null
+wait_for_service_account "$RUNTIME_SA"
+grant_project_role "serviceAccount:${RUNTIME_SA}" "roles/cloudsql.client"
+grant_project_role "serviceAccount:${RUNTIME_SA}" "roles/logging.logWriter"
 
 say "Preparando Artifact Registry"
 if ! gcloud artifacts repositories describe "$AR_REPOSITORY" \
@@ -91,10 +116,7 @@ if [[ -z "$BUILD_SA" ]]; then
 fi
 BUILD_SA="${BUILD_SA##*/}"
 
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${BUILD_SA}" \
-  --role="roles/artifactregistry.writer" \
-  --condition=None >/dev/null
+grant_project_role "serviceAccount:${BUILD_SA}" "roles/artifactregistry.writer"
 
 say "Preparando Cloud SQL PostgreSQL"
 if ! gcloud sql instances describe "$SQL_INSTANCE" --project="$PROJECT_ID" >/dev/null 2>&1; then
