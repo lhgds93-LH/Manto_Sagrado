@@ -1,0 +1,21 @@
+{
+  "name": "@manto-sagrado/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "build": "expo export --platform all",
+    "lint": "echo \"Lint mobile será configurado com o pacote compartilhado\"",
+    "typecheck": "echo \"Typecheck mobile será configurado com TypeScript\"",
+    "test": "echo \"Testes mobile serão adicionados na etapa de QA\""
+  },
+  "dependencies": {
+    "expo": "57.0.8",
+    "expo-router": "57.0.8",
+    "react": "19.2.3",
+    "react-native": "0.86.0"
+  }
+}
