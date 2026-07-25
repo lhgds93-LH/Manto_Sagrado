@@ -20,10 +20,6 @@ runConfig:
   cpu: 1
   memoryMiB: 512
 
-availability:
-  cpu: true
-  memory: true
-
 env:
   - variable: NEXT_PUBLIC_APP_ENV
     value: production
