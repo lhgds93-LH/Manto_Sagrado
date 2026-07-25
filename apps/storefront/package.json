@@ -2,12 +2,15 @@
   "name": "@manto-sagrado/storefront",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
-    "start": "next start --hostname 0.0.0.0 --port ${PORT:-3000}",
+    "start": "node server.mjs",
     "lint": "echo \"Lint storefront será configurado com ESLint compartilhado\"",
-    "typecheck": "next typegen",
+    "typecheck": "next build",
     "test": "echo \"Testes da storefront serão adicionados na etapa de QA\""
   },
   "dependencies": {
