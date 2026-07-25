@@ -56,13 +56,13 @@ jobs:
       - name: Build API
         run: pnpm --filter @manto-sagrado/api build
 
-      - name: Validate Firebase root runtime exactly
+      - name: Validate Firebase single-file runtime exactly
         run: |
           rm -rf dist /tmp/firebase-runtime
           npm run apphosting:build
+          node --check server.mjs
 
           mkdir -p /tmp/firebase-runtime
-          cp -R dist /tmp/firebase-runtime/dist
           cp server.mjs /tmp/firebase-runtime/server.mjs
 
           cd /tmp/firebase-runtime
@@ -71,6 +71,8 @@ jobs:
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8080/ > /tmp/manto-home.html; then
               grep -q "Manto Sagrado" /tmp/manto-home.html
+              curl --fail --silent http://127.0.0.1:8080/app.js > /tmp/manto-app.js
+              grep -q "renderProducts" /tmp/manto-app.js
               kill $APP_PID
               wait $APP_PID || true
               exit 0
