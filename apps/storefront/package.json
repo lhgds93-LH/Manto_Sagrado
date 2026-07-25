@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
-    "start": "next start --port 3000",
+    "start": "next start --hostname 0.0.0.0 --port ${PORT:-3000}",
     "lint": "echo \"Lint storefront será configurado com ESLint compartilhado\"",
     "typecheck": "next typegen",
     "test": "echo \"Testes da storefront serão adicionados na etapa de QA\""
