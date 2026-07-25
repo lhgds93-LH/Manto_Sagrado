@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: manto-sagrado-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: manto
+      POSTGRES_PASSWORD: manto_local
+      POSTGRES_DB: manto_sagrado
+    ports:
+      - "5432:5432"
+    volumes:
+      - manto_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manto -d manto_sagrado"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  manto_postgres_data:
