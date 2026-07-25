@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://manto:manto_local@localhost:5432/manto_sagrado
+      ADMIN_API_KEY: ci-admin-key-not-for-production
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3001
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.17.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @manto-sagrado/api prisma:generate
+
+      - name: Typecheck contracts
+        run: pnpm --filter @manto-sagrado/contracts typecheck
+
+      - name: Build API
+        run: pnpm --filter @manto-sagrado/api build
+
+      - name: Build storefront
+        run: pnpm --filter @manto-sagrado/storefront build
+
+      - name: Build admin
+        run: pnpm --filter @manto-sagrado/admin build
