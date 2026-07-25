@@ -89,8 +89,23 @@ pnpm build
 pnpm typecheck
 ```
 
-O GitHub Actions valida instalação, Prisma, contratos, API, loja e painel a cada alteração na branch principal ou pull request.
+O GitHub Actions valida instalação, Prisma Client, migração inicial, contratos, API, loja, painel e a imagem Docker do Cloud Run.
+
+## Publicação
+
+A infraestrutura de publicação está preparada com:
+
+- `apps/storefront/apphosting.yaml` para a loja no Firebase App Hosting;
+- `apps/admin/apphosting.yaml` para o painel no Firebase App Hosting;
+- `apps/api/Dockerfile` para a API no Cloud Run;
+- `cloudbuild.api.yaml` para build e implantação automática;
+- migração inicial versionada em `apps/api/prisma/migrations`;
+- configuração de escala mínima zero para controlar custos.
+
+Use um projeto Firebase separado para o Manto Sagrado, vinculado à mesma conta de cobrança do Gens. O painel administrativo não deve ser exposto para uso real antes da implementação do login administrativo.
+
+Consulte `docs/PUBLICACAO_FIREBASE.md` para o procedimento completo.
 
 ## Status
 
-A base integrada foi compilada com sucesso no CI. Consulte `docs/PROGRESS.md` para o estado detalhado e as próximas entregas.
+A base integrada, a migração e os artefatos de publicação foram compilados com sucesso no CI. A criação do projeto Firebase, a vinculação da conta de cobrança e os recursos do Google Cloud dependem de autorização na conta Google do proprietário. Consulte `docs/PROGRESS.md` para o estado detalhado e as próximas entregas.
