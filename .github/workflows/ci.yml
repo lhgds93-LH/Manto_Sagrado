@@ -28,6 +28,9 @@ jobs:
         with:
           node-version: 24
 
+      - name: Validate Google Cloud provisioner
+        run: bash -n scripts/provision-gcp-production.sh
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
