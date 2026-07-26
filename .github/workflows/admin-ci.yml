@@ -1,0 +1,163 @@
+name: Admin CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-admin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.17.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Validate deploy script
+        run: bash -n scripts/deploy-admin-production.sh
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build admin
+        run: pnpm --filter @manto-sagrado/admin build
+
+      - name: Build admin image
+        run: docker build --file apps/admin/Dockerfile --tag manto-sagrado-admin:ci .
+
+      - name: Validate protected admin runtime
+        run: |
+          set -Eeuo pipefail
+          cleanup() {
+            docker rm -f manto-admin >/dev/null 2>&1 || true
+            kill "${MOCK_PID:-}" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          cat > /tmp/mock-admin-api.mjs <<'MOCK'
+          import { createServer } from "node:http";
+
+          const order = {
+            id: "ci-order-id",
+            number: "MS-CI-ADMIN",
+            customerName: "Cliente Admin CI",
+            customerEmail: "admin-ci@example.com",
+            customerPhone: "51999999999",
+            shippingStreet: "Rua de Teste",
+            shippingNumber: "100",
+            shippingComplement: null,
+            shippingNeighborhood: "Centro",
+            shippingCity: "Canoas",
+            shippingState: "RS",
+            shippingPostalCode: "92000000",
+            status: "AWAITING_PAYMENT",
+            paymentStatus: "PENDING",
+            subtotal: 149.9,
+            shippingAmount: 0,
+            discountAmount: 0,
+            total: 149.9,
+            createdAt: new Date().toISOString(),
+            sentToPartnerAt: null,
+            trackingCode: null,
+            trackingCarrier: null,
+            items: [{ id: "item-ci", productName: "Camisa CI", sku: "MS-CI", size: "M", quantity: 1, unitPrice: 149.9, personalization: null }],
+            events: []
+          };
+
+          createServer(async (request, response) => {
+            if (request.headers["x-admin-api-key"] !== "ci-admin-api-key") {
+              response.writeHead(401, { "content-type": "application/json" });
+              response.end(JSON.stringify({ message: "Chave inválida" }));
+              return;
+            }
+
+            if (request.method === "GET" && request.url === "/v1/admin/orders") {
+              response.writeHead(200, { "content-type": "application/json" });
+              response.end(JSON.stringify([order]));
+              return;
+            }
+
+            if (request.method === "GET" && request.url === "/v1/admin/orders/MS-CI-ADMIN/template") {
+              response.writeHead(200, { "content-type": "application/json" });
+              response.end(JSON.stringify({ number: order.number, template: "NOVO PEDIDO — MANTO SAGRADO" }));
+              return;
+            }
+
+            if (request.method === "PATCH" && request.url === "/v1/admin/orders/MS-CI-ADMIN/payment-approved") {
+              response.writeHead(200, { "content-type": "application/json" });
+              response.end(JSON.stringify({ ...order, status: "PAID", paymentStatus: "APPROVED" }));
+              return;
+            }
+
+            response.writeHead(404, { "content-type": "application/json" });
+            response.end(JSON.stringify({ message: "Rota não encontrada" }));
+          }).listen(9091, "127.0.0.1");
+          MOCK
+
+          node /tmp/mock-admin-api.mjs > /tmp/mock-admin-api.log 2>&1 &
+          MOCK_PID=$!
+
+          docker run --detach --name manto-admin --network host \
+            --env PORT=8081 \
+            --env API_URL=http://127.0.0.1:9091 \
+            --env ADMIN_API_KEY=ci-admin-api-key \
+            --env ADMIN_PANEL_PASSWORD='Senha-CI-123!' \
+            --env ADMIN_SESSION_SECRET='ci-session-secret-with-more-than-thirty-two-characters' \
+            manto-sagrado-admin:ci
+
+          for attempt in {1..45}; do
+            if curl --fail --silent http://127.0.0.1:8081/ > /tmp/admin-home.html; then
+              grep -q "Painel Manto Sagrado" /tmp/admin-home.html
+              break
+            fi
+            if ! docker inspect -f '{{.State.Running}}' manto-admin 2>/dev/null | grep -qx true; then
+              docker logs manto-admin
+              exit 1
+            fi
+            [[ "$attempt" -eq 45 ]] && { docker logs manto-admin; exit 1; }
+            sleep 1
+          done
+
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8081/api/auth/me)" = "401"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --request POST --header 'content-type: application/json' \
+            --data '{"password":"errada"}' \
+            http://127.0.0.1:8081/api/auth/login)" = "401"
+
+          curl --fail --silent --cookie-jar /tmp/admin-cookie.txt \
+            --request POST --header 'content-type: application/json' \
+            --data '{"password":"Senha-CI-123!"}' \
+            http://127.0.0.1:8081/api/auth/login > /tmp/admin-login.json
+          grep -q '"authenticated":true' /tmp/admin-login.json
+
+          curl --fail --silent --cookie /tmp/admin-cookie.txt \
+            http://127.0.0.1:8081/api/auth/me > /tmp/admin-me.json
+          grep -q '"authenticated":true' /tmp/admin-me.json
+
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8081/api/admin/orders)" = "401"
+
+          curl --fail --silent --cookie /tmp/admin-cookie.txt \
+            http://127.0.0.1:8081/api/admin/orders > /tmp/admin-orders.json
+          grep -q '"MS-CI-ADMIN"' /tmp/admin-orders.json
+
+          curl --fail --silent --cookie /tmp/admin-cookie.txt \
+            http://127.0.0.1:8081/api/admin/orders/MS-CI-ADMIN/template > /tmp/admin-template.json
+          grep -q 'NOVO PEDIDO' /tmp/admin-template.json
+
+          curl --fail --silent --cookie /tmp/admin-cookie.txt \
+            --request PATCH --header 'content-type: application/json' \
+            http://127.0.0.1:8081/api/admin/orders/MS-CI-ADMIN/payment-approved > /tmp/admin-paid.json
+          grep -q '"paymentStatus":"APPROVED"' /tmp/admin-paid.json
+
+          docker logs manto-admin
