@@ -64,20 +64,75 @@ jobs:
 
       - name: Validate Firebase commerce runtime exactly
         env:
-          PUBLIC_API_URL: https://api.example.test
+          PUBLIC_API_URL: http://127.0.0.1:9090
         run: |
+          set -Eeuo pipefail
+          cleanup() {
+            kill "${APP_PID:-}" >/dev/null 2>&1 || true
+            kill "${MOCK_PID:-}" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
           rm -rf dist /tmp/firebase-runtime
           node --check apps/storefront/static/app.js
+          node --check apps/storefront/server-template.mjs
           node --check apphosting-build.mjs
           npm run apphosting:build
           node --check server.mjs
+
+          cat > /tmp/mock-api.mjs <<'MOCK'
+          import { createServer } from "node:http";
+
+          const product = {
+            id: "ci-product-1",
+            sku: "MS-CI-001",
+            slug: "camisa-ci",
+            name: "Camisa CI",
+            description: "Produto usado para validar o proxy interno.",
+            category: "BRASILEIRAO",
+            price: 149.9,
+            compareAtPrice: 179.9,
+            imageUrl: null,
+            badge: "Teste",
+            variants: [{ id: "ci-variant-1", size: "M", stock: 10 }]
+          };
+
+          createServer(async (request, response) => {
+            if (request.method === "GET" && request.url === "/v1/products") {
+              const body = Buffer.from(JSON.stringify([product]));
+              response.writeHead(200, { "content-type": "application/json", "content-length": body.length });
+              response.end(body);
+              return;
+            }
+
+            if (request.method === "POST" && request.url === "/v1/orders") {
+              for await (const _chunk of request) void _chunk;
+              const body = Buffer.from(JSON.stringify({
+                number: "MS-CI-001",
+                status: "AWAITING_PAYMENT",
+                paymentStatus: "PENDING",
+                total: 149.9
+              }));
+              response.writeHead(201, { "content-type": "application/json", "content-length": body.length });
+              response.end(body);
+              return;
+            }
+
+            response.writeHead(404, { "content-type": "application/json" });
+            response.end(JSON.stringify({ message: "Rota não encontrada" }));
+          }).listen(9090, "127.0.0.1");
+          MOCK
+
+          node /tmp/mock-api.mjs > /tmp/manto-mock-api.log 2>&1 &
+          MOCK_PID=$!
 
           mkdir -p /tmp/firebase-runtime
           cp server.mjs /tmp/firebase-runtime/server.mjs
 
           cd /tmp/firebase-runtime
-          PORT=8080 PUBLIC_API_URL=https://api.example.test node server.mjs > /tmp/manto-storefront.log 2>&1 &
+          PORT=8080 PUBLIC_API_URL=http://127.0.0.1:9090 node server.mjs > /tmp/manto-storefront.log 2>&1 &
           APP_PID=$!
+
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8080/ > /tmp/manto-home.html; then
               grep -q "checkout-form" /tmp/manto-home.html
@@ -85,17 +140,25 @@ jobs:
               curl --fail --silent http://127.0.0.1:8080/app.js > /tmp/manto-app.js
               grep -q "submitOrder" /tmp/manto-app.js
               curl --fail --silent http://127.0.0.1:8080/runtime-config.js > /tmp/manto-config.js
-              grep -q "https://api.example.test" /tmp/manto-config.js
+              grep -q 'apiUrl: "/api"' /tmp/manto-config.js
+              curl --fail --silent http://127.0.0.1:8080/api/v1/products > /tmp/manto-products.json
+              grep -q '"MS-CI-001"' /tmp/manto-products.json
+              curl --fail --silent \
+                --request POST \
+                --header 'content-type: application/json' \
+                --data '{"customer":{"name":"Cliente CI"},"items":[]}' \
+                http://127.0.0.1:8080/api/v1/orders > /tmp/manto-order.json
+              grep -q '"MS-CI-001"' /tmp/manto-order.json
               curl --fail --silent http://127.0.0.1:8080/healthz > /tmp/manto-health.json
               grep -q '"status":"ok"' /tmp/manto-health.json
-              kill $APP_PID
-              wait $APP_PID || true
+              grep -q '"apiConfigured":true' /tmp/manto-health.json
               exit 0
             fi
             sleep 1
           done
+
           cat /tmp/manto-storefront.log
-          kill $APP_PID || true
+          cat /tmp/manto-mock-api.log
           exit 1
 
       - name: Build admin
