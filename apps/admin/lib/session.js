@@ -55,7 +55,7 @@ export async function isAdminAuthenticated() {
 
 export const adminCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  secure: process.env.NODE_ENV === "production" && process.env.ADMIN_COOKIE_SECURE !== "false",
   sameSite: "strict",
   path: "/",
   maxAge: SESSION_TTL_SECONDS,
