@@ -114,6 +114,7 @@ jobs:
             --env ADMIN_API_KEY=ci-admin-api-key \
             --env ADMIN_PANEL_PASSWORD='Senha-CI-123!' \
             --env ADMIN_SESSION_SECRET='ci-session-secret-with-more-than-thirty-two-characters' \
+            --env ADMIN_COOKIE_SECURE=false \
             manto-sagrado-admin:ci
 
           for attempt in {1..45}; do
