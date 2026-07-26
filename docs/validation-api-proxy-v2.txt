@@ -1,0 +1,1 @@
+Validação temporária do proxy interno, quebra de cache e bloqueio de pedidos locais.
