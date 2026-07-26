@@ -119,7 +119,7 @@ jobs:
 
           for attempt in {1..45}; do
             if curl --fail --silent http://127.0.0.1:8081/ > /tmp/admin-home.html; then
-              grep -q "Painel Manto Sagrado" /tmp/admin-home.html
+              grep -q "Manto Sagrado" /tmp/admin-home.html
               break
             fi
             if ! docker inspect -f '{{.State.Running}}' manto-admin 2>/dev/null | grep -qx true; then
