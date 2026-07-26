@@ -21,3 +21,7 @@ env:
     availability:
       - BUILD
       - RUNTIME
+  - variable: PUBLIC_API_URL
+    value: https://manto-sagrado-api-geurgzus5q-uk.a.run.app
+    availability:
+      - RUNTIME
