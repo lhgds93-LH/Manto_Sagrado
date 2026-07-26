@@ -3,7 +3,8 @@ import { extname } from "node:path";
 
 const assets = __EMBEDDED_ASSETS__;
 const port = Number(process.env.PORT || 8080);
-const upstreamApiUrl = String(process.env.PUBLIC_API_URL || process.env.API_URL || "")
+const fallbackApiUrl = "https://manto-sagrado-api-geurgzus5q-uk.a.run.app";
+const upstreamApiUrl = String(process.env.PUBLIC_API_URL || process.env.API_URL || fallbackApiUrl)
   .trim()
   .replace(/\/$/, "");
 
@@ -103,7 +104,8 @@ const server = createServer(async (request, response) => {
     send(response, 200, "application/json; charset=utf-8", JSON.stringify({
       status: "ok",
       service: "manto-sagrado-storefront",
-      apiConfigured: Boolean(upstreamApiUrl)
+      apiConfigured: Boolean(upstreamApiUrl),
+      build: "2026-07-26-api-proxy-v2"
     }));
     return;
   }
@@ -127,10 +129,11 @@ const server = createServer(async (request, response) => {
   }
 
   const body = Buffer.from(asset.body, "base64");
+  const noStore = assetPath === "/index.html" || assetPath.endsWith(".js");
   response.writeHead(200, {
     "content-type": asset.contentType,
     "content-length": body.length,
-    "cache-control": assetPath === "/index.html" ? "public, max-age=0, must-revalidate" : "public, max-age=300",
+    "cache-control": noStore ? "no-store" : "public, max-age=300",
     "x-content-type-options": "nosniff",
     "x-frame-options": "SAMEORIGIN",
     "referrer-policy": "strict-origin-when-cross-origin"
