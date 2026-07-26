@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import { extname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Script } from "node:vm";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const source = resolve(root, "apps/storefront/static");
@@ -59,8 +60,21 @@ const assets = Object.fromEntries(
   })
 );
 
-if (!assets["/index.html"]) {
-  throw new Error("Build inválido: apps/storefront/static/index.html não encontrado");
+for (const requiredAsset of ["/index.html", "/app.js", "/api-bootstrap.js", "/api-guard.js"]) {
+  if (!assets[requiredAsset]) {
+    throw new Error(`Build inválido: ${requiredAsset} não encontrado`);
+  }
+}
+
+for (const [publicPath, asset] of Object.entries(assets)) {
+  if (!publicPath.endsWith(".js")) continue;
+  const javascript = Buffer.from(asset.body, "base64").toString("utf8");
+  new Script(javascript, { filename: publicPath });
+}
+
+const indexHtml = Buffer.from(assets["/index.html"].body, "base64").toString("utf8");
+if (!indexHtml.includes("api-bootstrap.js?v=20260726-2") || !indexHtml.includes("api-guard.js?v=20260726-2")) {
+  throw new Error("Build inválido: scripts versionados da API não foram carregados pelo index.html");
 }
 
 const template = readFileSync(templatePath, "utf8");
